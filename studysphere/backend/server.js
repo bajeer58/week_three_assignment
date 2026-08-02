@@ -7,6 +7,8 @@ const errorHandler = require('./middleware/errorHandler');
 const authRoutes = require('./routes/auth');
 const questionRoutes = require('./routes/questions');
 const answerRoutes = require('./routes/answers');
+const dns = require('dns');
+dns.setServers(['8.8.8.8', '8.8.4.4']);
 
 const app = express();
 
