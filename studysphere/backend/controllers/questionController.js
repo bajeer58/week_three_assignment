@@ -3,9 +3,16 @@ const Answer = require('../models/Answer');
 
 exports.listQuestions = async (req, res, next) => {
   try {
-    const { tag, sort } = req.query;
+    const { tag, sort, search } = req.query;
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 10));
+
     const filter = {};
     if (tag && Question.TAGS.includes(tag)) filter.tag = tag;
+    if (search && search.trim()) {
+      const regex = new RegExp(search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      filter.$or = [{ title: regex }, { body: regex }];
+    }
 
     const questions = await Question.find(filter)
       .populate('author', 'name')
@@ -23,7 +30,12 @@ exports.listQuestions = async (req, res, next) => {
       withCounts.sort((a, b) => b.answerCount - a.answerCount);
     }
 
-    res.json(withCounts);
+    const total = withCounts.length;
+    const pages = Math.max(1, Math.ceil(total / limit));
+    const start = (page - 1) * limit;
+    const paged = withCounts.slice(start, start + limit);
+
+    res.json({ questions: paged, total, page, pages });
   } catch (err) {
     next(err);
   }
@@ -31,7 +43,11 @@ exports.listQuestions = async (req, res, next) => {
 
 exports.getQuestion = async (req, res, next) => {
   try {
-    const question = await Question.findById(req.params.id).populate('author', 'name');
+    const question = await Question.findByIdAndUpdate(
+      req.params.id,
+      { $inc: { views: 1 } },
+      { new: true }
+    ).populate('author', 'name');
     if (!question) return res.status(404).json({ error: 'Question not found' });
 
     const answers = await Answer.find({ question: question._id })

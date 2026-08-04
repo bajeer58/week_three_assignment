@@ -8,6 +8,7 @@ const questionSchema = new mongoose.Schema({
   tag: { type: String, required: true, enum: TAGS },
   author: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   bestAnswer: { type: mongoose.Schema.Types.ObjectId, ref: 'Answer', default: null },
+  views: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now }
 });
 
