@@ -1,11 +1,15 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { Eye, MessageSquare, WifiOff, ArrowLeft } from 'lucide-react';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import TagChip from '../components/TagChip';
 import AnswerCard from '../components/AnswerCard';
 import { CardSkeleton } from '../components/Skeletons';
+import { Avatar, Card, Textarea, Button } from '../components/ui';
 
 export default function QuestionDetail() {
   const { id } = useParams();
@@ -50,26 +54,57 @@ export default function QuestionDetail() {
   };
 
   if (status === 'loading') {
-    return <div className="max-w-3xl mx-auto mt-8 px-4"><CardSkeleton /></div>;
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-8">
+        <CardSkeleton />
+      </div>
+    );
   }
   if (status === 'error') {
-    return <p className="max-w-3xl mx-auto mt-8 px-4 text-red-600">Failed to load this question.</p>;
+    return (
+      <div className="mx-auto flex max-w-3xl flex-col items-center px-4 py-16 text-center">
+        <WifiOff className="h-8 w-8 text-gray-300 dark:text-gray-600" />
+        <p className="mt-3 font-medium text-gray-700 dark:text-gray-300">Failed to load this question</p>
+      </div>
+    );
   }
 
   const { question, answers } = data;
   const isQuestionAuthor = user && String(question.author._id) === user.id;
 
   return (
-    <div className="max-w-3xl mx-auto mt-8 px-4 space-y-6">
-      <div className="bg-white p-5 rounded-lg shadow">
-        <TagChip tag={question.tag} />
-        <h1 className="text-2xl font-bold mt-2">{question.title}</h1>
-        <p className="text-gray-700 mt-3 whitespace-pre-wrap">{question.body}</p>
-        <p className="text-sm text-gray-400 mt-3">by {question.author.name}</p>
-      </div>
+    <div className="mx-auto max-w-3xl space-y-6 px-4 py-8">
+      <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-brand-600 dark:text-gray-400">
+        <ArrowLeft className="h-3.5 w-3.5" />
+        Back to questions
+      </Link>
+
+      <Card className="animate-slide-up p-6">
+        <div className="flex items-center gap-2">
+          <TagChip tag={question.tag} />
+          <span className="flex items-center gap-1 text-xs text-gray-400">
+            <Eye className="h-3.5 w-3.5" />
+            {question.views ?? 0} views
+          </span>
+          <span className="flex items-center gap-1 text-xs text-gray-400">
+            <MessageSquare className="h-3.5 w-3.5" />
+            {answers.length} answers
+          </span>
+        </div>
+        <h1 className="mt-3 text-2xl font-bold text-gray-900 dark:text-gray-100">{question.title}</h1>
+        <div className="prose prose-sm mt-3 max-w-none text-gray-700 dark:prose-invert dark:text-gray-300">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{question.body}</ReactMarkdown>
+        </div>
+        <div className="mt-4 flex items-center gap-2 border-t border-gray-100 pt-4 text-sm text-gray-500 dark:border-gray-800 dark:text-gray-400">
+          <Avatar name={question.author.name} size="sm" />
+          asked by {question.author.name}
+        </div>
+      </Card>
 
       <div className="space-y-3">
-        <h2 className="font-semibold text-gray-700">{answers.length} Answers</h2>
+        <h2 className="font-semibold text-gray-700 dark:text-gray-300">
+          {answers.length} {answers.length === 1 ? 'Answer' : 'Answers'}
+        </h2>
         {answers.map((a) => (
           <AnswerCard
             key={a._id}
@@ -83,21 +118,24 @@ export default function QuestionDetail() {
       </div>
 
       {user ? (
-        <form onSubmit={handlePostAnswer} className="bg-white p-4 rounded-lg shadow space-y-2">
-          <textarea
-            value={answerBody} onChange={(e) => setAnswerBody(e.target.value)}
-            placeholder="Write your answer..." rows={4}
-            className="w-full border rounded px-3 py-2"
-          />
-          <button
-            disabled={posting}
-            className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 disabled:opacity-50"
-          >
-            {posting ? 'Posting...' : 'Post Answer'}
-          </button>
-        </form>
+        <Card className="space-y-3 p-5">
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Your answer</h3>
+          <form onSubmit={handlePostAnswer} className="space-y-3">
+            <Textarea
+              value={answerBody}
+              onChange={(e) => setAnswerBody(e.target.value)}
+              placeholder="Write your answer... markdown supported"
+              rows={4}
+            />
+            <Button type="submit" loading={posting}>
+              {posting ? 'Posting...' : 'Post Answer'}
+            </Button>
+          </form>
+        </Card>
       ) : (
-        <p className="text-gray-500 text-sm">Log in to post an answer.</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          <Link to="/login" className="font-medium text-brand-600 hover:underline">Log in</Link> to post an answer.
+        </p>
       )}
     </div>
   );
